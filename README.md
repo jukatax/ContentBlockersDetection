@@ -33,3 +33,5 @@ It should be a two-part script:
           file_get_contents($sGaUrl.'&el=VisitWithoutContentBlocker');
      }
      ```
+
+     ![sample diagram flow](./cbd.png "sample diagram flow")

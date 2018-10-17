@@ -1,6 +1,6 @@
 /**
  * Created by YULIYAN on Apr/2018
- * v 0.1
+ * v 0.2
  */
 /*jshint esversion:6*/
 /* globals window, document, console, clearTimeout, setTimeout  */
