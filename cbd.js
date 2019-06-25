@@ -1,112 +1,170 @@
 /**
  * Created by YULIYAN on Apr/2018
- * v 0.2
+ * v 2.3
  */
 /*jshint esversion:6*/
 /* globals window, document, console, clearTimeout, setTimeout  */
-"use strict";
 /*
  * Detect and report if content blockers are in effect on client browser.
  *
  * Script to run after DOM has loaded, at the end of the page to minimize any performance impact (should be negligible).
  */
-
 /**
- * Using IIFE to avoid polluting the global scope.
- * IE complaints about strict mode , therefore omiting it.
- * @param {cbdPath}  [STRING____the_server_url_to_call]
- */
-(function (cbdPath) {
-    if (!cbdPath) {
-        return;
-    }
-
-    /** Log function for debugging
-     * will log if session storage has '_qa' key
-     * @param {type} [STRING___info_warning_danger_success]
-     * @param {msg} [STRING___the_text_to_display_in_console_log_]
+* Using IIFE to avoid polluting the global scope.
+* IE complaints about strict mode , therefore omiting it.
+* @param {String} nua [STRING____navigator.userAgent]
+* @param {String/Boolean} url [STRING____navigator.userAgent]
+*/
+(function (nua, url) {
+    //
+    /**
+     * use an image pixel that is loaded from a blocked directory from easyPrivacy list
+     * target Chrom/FF only if needed
+     * create a folder on the server "analytics-js"
+     * create a (transparent)pixel file "someImage.png"
+     * create the php file that will handle the analytics call "somerandomnamedlocalfile.php"
+     * use a cookie to fire the conversion once in a session
      */
-    var _log = function (msg, type) {
-        if (window.sessionStorage && window.sessionStorage.getItem('_qa')) {
-            var cstyles = [
-                'background:' +
-                (type === 'info' ?
-                    'aqua' :
-                    type === 'danger' ?
-                    'red' :
-                    type === 'success' ? 'green' : 'yellow'),
-                'color:' + (type === 'warning' || type === 'info' ? '#333' : '#fff'),
-                'padding: 2px 8px'
-            ].join(';');
-            console.log('%c' + msg + '', cstyles);
+    const GA = "UA-123456789-0";
+    try {
+        var inProgress = false;
+        var version = "2.3";
+        //check for problems
+        if (typeof nua === "undefined") {
+            throw new Error("navigator.userAgent is undefined");
         }
-    };
-
-    if (
-        window.sessionStorage &&
-        !window.sessionStorage.getItem('_asdasdqweqwe')
-    ) {
-        var easyPrivacyListPresent = false,
-            easyListPresent = false,
-            bdy = document.body || document.documentElement,
-            timeout = 500, // in ms
-            testImage = document.createElement('img'), // to test for easyPrivacyList
-            testDiv = document.createElement('div'); // to test for easyList
-        testImage.src = '/analytics-js/someImage.png';
-        testImage.height = 1;
-        testImage.width = 1;
-        testImage.style =
-            'position : absolute;bottom:0;z-index : -999;visibility: hidden;display :inline-block;';
-        testDiv.style =
-            'position : absolute;bottom:0;z-index : -999;visibility: hidden;width:1px;height :1px;';
-        testDiv.innerHTML = '<p>&nbsp;</p>'; // IE fix
-        testDiv.id = 'ADSPACE02';
-        testDiv.setAttribute(
-            'class',
-            'ADBox AD_area NewsAds ProductAd V7-advert ad--MAIN'
-        );
-        bdy.appendChild(testImage);
-        bdy.appendChild(testDiv);
-
+        if (typeof window !== "object") {
+            throw new Error("window is undefined");
+        }
+        if (typeof document !== "object") {
+            throw new Error("document is undefined");
+        }
+        if (typeof XMLHttpRequest !== "function") {
+            throw new Error("XMLHttpRequest is undefined");
+        }
+        if (typeof window.sessionStorage !== "object") {
+            if (typeof document.cookie !== "string") {
+                throw new Error("sessionStorage & cookie are not available");
+            }
+        }
+        if (typeof document.createElement !== "function") {
+            throw new Error("createElement is not available");
+        }
         /*
-         * setTimeout method is needed since some content blockers fail to do their change
-         * before I send the request to the server for unknown reasons(slow computer/browser etc.)
-         * I have found it works as expected when I give them some time to scrape the DOM and do their blocking
+        * {@type} [string] info/warning/danger/success
+        * {@msg} [string]
+        */
+        const _log = function (msg, type) {
+            if (document.cookie.match(/_qa/ig) || sessionStorage.getItem("_qa")) {
+                let cstyles = [
+                    'background:' + (type === 'info' ? 'teal' : type === "danger" ? "red" : type === "success" ? "green" : "yellow")
+                    , 'color:' + (type === 'warning' || type === 'info' ? "#eee" : "#fff")
+                    , 'padding: 2px 8px'
+                ].join(';');
+                console.log('%c::WIDGET-content blockers detection v.' + version + ':: ' + msg + '', cstyles);
+            }
+        };
+        /**
+         *
+         * @param {string} name
+         * @param {string} val
          */
-        window.setTimeout(function () {
-            _log('testImage.offsetHeight ' + testImage.offsetHeight, 'info');
-            _log('testDiv.offsetHeight ' + testDiv.offsetHeight, 'info');
-            if (testImage.offsetHeight === 0) {
-                easyPrivacyListPresent = true;
-            }
-            if (testDiv.offsetHeight === 0) {
-                easyListPresent = true;
-            }
-            _log('easyPrivacyList Enabled? ' + easyPrivacyListPresent, 'info');
-            _log('easyList Enabled? ' + easyListPresent, 'info');
-            // remove the created test elements
-            testImage.parentNode.removeChild(testImage); // IE fix
-            testDiv.parentNode.removeChild(testDiv); // IE fix
+        const setSessionCookie = function (name, val) {
+            let d = new Date();
+            d.setTime(d.getTime() + 1000 * 60 * 60 * 24 * 0.064);
+            document.cookie = name + '=' + val + ';path=/;expires=' + d.toUTCString() + ';domain=' + document.domain + ';';
+        };//setSessionCookie
 
-            /** do ajax GET/POST
-      * use your own ajax method if you wish, I am using native XMLHttpRequest
-      * @param {cbdPath} [STRING___path_to_server_file_or_route_to_handle_the_GA_call_from_the_server]
-_     */
-            var url = cbdPath,
-                client = new XMLHttpRequest(),
-                method = 'POST',
-                args = 'el=' + (easyPrivacyListPresent || easyListPresent ? 'true' : 'false') +
-                        '&_csrf=' + document.body.getAttribute('data-csrf-token'); // if needed
-            if (method === 'GET') {
-              client.open(method, url + '?' + args, true);
-              client.send();
-            }else{
-                client.open(method, url, true);
-                client.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' ); // if needed
-                client.send(args);
-            }
+        // Set QA cookie and session storage
+        //window && window.sessionStorage ? window.sessionStorage.setItem("_qa", "true") : null;
+        //document.cookie && !document.cookie.match(/_qa/ig) ? setSessionCookie("_qa", "true") : null;
 
-            window.sessionStorage.setItem('_asdasdqweqwe', 'true');
-        }, timeout); // end timeout
+        if (((window.sessionStorage && !window.sessionStorage.getItem("_asdasdqweqwe")) || !document.cookie.match(/_asdasdqweqwe/ig)) && !inProgress && document.domain && document.domain.match(/tesco/ig)) {
+            inProgress = true;
+            var easyPrivacyListPresent = false,
+                bdy = document.getElementsByTagName("body")[0] || document.documentElement,
+                timeout = 750, // in ms
+                testImage = document.createElement('img'), // to test easyPrivacyList
+                testImage2 = document.createElement('img'); // to test easyPrivacyList
+
+            //
+            testImage.src = '/analytics-js/cbd.png';
+            testImage.height = 1;
+            testImage.width = 1;
+            testImage.id = "ADSLOT_1";
+            testImage.setAttribute("class", "FooterAds rt-ad rt-ad-body");
+            testImage.style = "position : absolute;bottom:0;z-index : -999;visibility: hidden;";
+            //
+            testImage2.src = "/_webanalytics.png";
+            testImage2.height = "1";
+            testImage2.width = "1";
+            testImage2.style = "position : absolute;bottom:0;left:0;z-index : -999;visibility: hidden;";
+            testImage2.id = 'ADSPACE01';
+            testImage2.setAttribute("class", "ProductAd rt-ad rt-ad-body");
+            //
+            testImage ? bdy.appendChild(testImage) : null;
+            testImage2 ? bdy.appendChild(testImage2) : null;
+            //
+            window.setTimeout(function () {
+                _log("testImage.offsetHeight " + testImage.offsetHeight, "info");
+                _log("testImage2.offsetHeight " + testImage2.offsetHeight, "info");
+                if (testImage.offsetHeight === 0 || testImage2.offsetHeight === 0) {
+                    easyPrivacyListPresent = true;
+                }
+                _log('easyPrivacyList Enabled? ' + easyPrivacyListPresent, "info");
+
+                // remove the created test elements
+                testImage ? testImage.parentNode.removeChild(testImage) : null;
+                testImage2 ? testImage2.parentNode.removeChild(testImage2) : null;
+
+                if (url) {
+                    //do ajax POST request to local file here
+                    //
+                    let client = new XMLHttpRequest();
+                    //var url = "./01_yuli_cbd.php";
+                    const method = "GET"; // or POST depending on where it will be implemented
+                    const args = "v=1&aip=1&ds=web&qt=0" +
+                        "&tid=UA-125521677-1" +
+                        "&cid=" + (document.cookie.match(/akavpau_tesco_(groceries|secure)=\d+/) && document.cookie.match(/akavpau_tesco_(groceries|secure)=\d+/)[0] ? document.cookie.match(/akavpau_tesco_(groceries|secure)=\d+/)[0].split("=")[1].substr(0, 8) : btoa(navigator.userAgent).substr(8, 16)) +
+                        "&t=event" +
+                        "&ec=ContentBlockerDetection" +
+                        "&ea=nonInteractionEvent" +
+                        "&el=" + (easyPrivacyListPresent ? 'sessionWithContentBlocker' : 'sessionWithoutContentBlocker') +
+                        "&ua=" + navigator.userAgent +
+                        "&dr=" + encodeURIComponent(document.referrer || "") +
+                        "&dh=" + encodeURIComponent(document.location.host || "") +
+                        "&dp=" + encodeURIComponent(document.location.pathname || "") +
+                        "&dt=" + encodeURIComponent(document.title || "");
+                    // send (async) the event
+                    if (method === "POST") {
+                        client.open(method, url, true);
+                        client.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                        client.send(args);
+                    } else {
+                        client.open(method, url + "?" + args, true);
+                        client.send();
+                    }
+                    // handle response if necessary
+                    client.onload = (e) => {
+                        if (e.target.status >= 200 && e.target.status < 300) {
+                            _log('Response: ' + e.target.response, "success");
+                        } else {
+                            _log('Status : ' + e.target.statusText, "warning");
+                        }
+                    };
+                    // log error for the request if any
+                    client.onerror = (e) => {
+                        _log('Error : ' + e.target.statusText, "danger");
+                    };
+                    //
+                    window && window.sessionStorage ? window.sessionStorage.setItem("_asdasdqweqwe", "true") : document && document.cookie ? setSessionCookie("_qa", "true") : null;
+                }
+                inProgress = false;
+            }, timeout);// end timeout
+        }
+    } catch (error) {
+        console && console.error ? console.error("Problem detecting CB: " + error) : null;
+        // call error handling script to report the error
     }
-})(cbdPath);
+
+})(navigator && navigator.userAgent, false);
